@@ -1,5 +1,6 @@
 project_name: op-plasma-celestia
 builds:
+  - main: ./cmd/daserver
   - env: [CGO_ENABLED=0]
     goos:
       - linux
