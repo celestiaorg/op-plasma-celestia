@@ -13,7 +13,7 @@ builds:
       - arm64
 dockers:
 - image_templates: ["ghcr.io/celestiaorg/op-plasma-celestia:{{ .Version }}"]
-  dockerfile: Dockerfile
+  dockerfile: goreleaser.dockerfile
   build_flag_templates:
   - --label=org.opencontainers.image.title={{ .ProjectName }}
   - --label=org.opencontainers.image.description={{ .ProjectName }}
