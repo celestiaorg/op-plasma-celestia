@@ -1,9 +1,13 @@
-ARG OP_STACK_GO_BUILDER=us-docker.pkg.dev/oplabs-tools-artifacts/images/op-stack-go:latest
-FROM $OP_STACK_GO_BUILDER as builder
-# See "make golang-docker" and /ops/docker/op-stack-go
+FROM golang:1.22.2-alpine3.18 as builder
+
+WORKDIR /
+COPY . op-plasma-celestia
+RUN apk add --no-cache make
+WORKDIR /op-plasma-celestia
+RUN make da-server
 
 FROM alpine:3.18
 
-COPY --from=builder /usr/local/bin/da-server /usr/local/bin/da-server
+COPY --from=builder /op-plasma-celestia/bin/da-server /usr/local/bin/da-server
 
 CMD ["da-server"]
