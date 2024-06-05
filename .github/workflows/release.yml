@@ -12,6 +12,7 @@ on:
 # GitHub considers creating releases and uploading assets as writing contents.
 permissions:
   contents: write
+  packages: write
 
 jobs:
   goreleaser:
@@ -25,12 +26,11 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6.1.0
-        id: import_gpg
+      - uses: docker/login-action@v3
         with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          # passphrase: ${{ secrets.PASSPHRASE }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5.0.0
         with:
@@ -38,4 +38,3 @@ jobs:
         env:
           # GitHub sets the GITHUB_TOKEN secret automatically.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
