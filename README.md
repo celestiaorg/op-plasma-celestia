@@ -82,7 +82,7 @@ tail -f deployments/rollup/logs/da_server.log
 Upon successful operation, the logs should contain the following message:
 
 ```sh
-t=2024-05-30T19:08:30+0000 lvl=info msg="Using celestia storage" url=http://da:26658
+t=2024-05-30T19:08:30+0000 lvl=info msg="Using celestia storage" url=http://127.0.0.1:26658
 t=2024-05-30T19:08:32+0000 lvl=info msg="celestia: blob successfully submitted" id=0900000000000000b25a32154ab00902cfc0269b3239b612ebfe7f7263545119ee7251cc72728142
 t=2024-05-30T19:08:34+0000 lvl=info msg="celestia: blob successfully submitted" id=0a00000000000000cb559bc3c6a01b0819460ce86c13165fdc58ac9c81c1e52404f8c4b36097db87
 t=2024-05-30T19:08:34+0000 lvl=info msg="celestia: blob request" id=010c0900000000000000b25a32154ab00902cfc0269b3239b612ebfe7f7263545119ee7251cc72728142
