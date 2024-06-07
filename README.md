@@ -46,12 +46,12 @@ modes.
 The first way uses a fork of [rollop](https://github.com/0xFableOrg/roll-op) to
 automate deployment. This method is recommended for beginners.
 
-Clone the [rollop](https://github.com/tuxcanfly/roll-op) repository, checkout
+Clone the [rollop](https://github.com/celestiaorg/roll-op) repository, checkout
 the `plasma` branch and follow the instructions in the README to setup the
 rollop stack.
 
 ```sh
-git clone https://github.com/tuxcanfly/roll-op.git
+git clone https://github.com/celestiaorg/roll-op.git
 cd roll-op
 git checkout plasma
 ./rollop setup --yes
