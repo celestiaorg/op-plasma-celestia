@@ -180,7 +180,7 @@ Usually, it's better to deploy both OP stack and celestia-node in the same
 network, but for ease of testing, we will modify the devnet docker-compose
 file to submit to celestia testnet instead.
 
-For running plasma in celestia testnet mode, we'll use the celestia-node docker
+For running Alt-DA in celestia testnet mode, we'll use the celestia-node docker
 image which requires a [celestia testnet network like mocha or
 arabica](https://docs.celestia.org/nodes/participate).
 
