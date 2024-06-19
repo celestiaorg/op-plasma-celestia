@@ -2,7 +2,7 @@
 
 ## Overview:
 
-This repo implements a celestia `da-server` for plasma mode using generic
+This repo implements a celestia `da-server` for Alt-DA mode using generic
 commitments.
 
 The `da-server` connects to a celestia-node running as a sidecar process.
@@ -70,7 +70,7 @@ command:
 ./rollop --clean devnet
 ```
 
-This will start the devnet in plasma mode with celestia-node running in testnet
+This will start the devnet in Alt-DA mode with celestia-node running in testnet
 mode.
 
 You can verify that the devnet is running by checking da-server logs:
@@ -157,7 +157,7 @@ To run a local devnet with local-celestia-devnet:
 DEVNET_PLASMA="true" GENERIC_PLASMA="true"  make devnet-up
 ```
 
-This will start the devnet in plasma mode with local-celestia-devnet.
+This will start the devnet in Alt-DA mode with local-celestia-devnet.
 
 You can verify that the devnet is running by checking da-server logs:
 
@@ -200,7 +200,7 @@ Once the docker compose file is modified, you can run the devnet with the follow
 DEVNET_PLASMA="true" GENERIC_PLASMA="true"  make devnet-up
 ```
 
-This will start the devnet in plasma mode with celestia-node running in testnet
+This will start the devnet in Alt-DA mode with celestia-node running in testnet
 mode.
 
 You can verify that the devnet is running by checking da-server logs:
