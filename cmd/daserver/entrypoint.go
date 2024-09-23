@@ -5,9 +5,10 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	celestia "github.com/celestiaorg/op-plasma-celestia"
+	s3 "github.com/celestiaorg/op-plasma-celestia/s3"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/opio"
-	celestia "github.com/celestiaorg/op-plasma-celestia"
 )
 
 type Server interface {
@@ -38,7 +39,12 @@ func StartDAServer(cliCtx *cli.Context) error {
 	case cfg.CelestiaEnabled():
 		l.Info("Using celestia storage", "url", cfg.CelestiaConfig().URL)
 		store := celestia.NewCelestiaStore(cfg.CelestiaConfig())
-		server = celestia.NewCelestiaServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), store, l)
+		l.Info("Using s3 storage")
+		s3Store, err := s3.NewS3(cfg.S3Config)
+		if err != nil {
+			return err
+		}
+		server = celestia.NewCelestiaServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), store, s3Store, l)
 	}
 
 	if err := server.Start(); err != nil {

@@ -7,18 +7,29 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	s3 "github.com/celestiaorg/op-plasma-celestia/s3"
+
+	celestia "github.com/celestiaorg/op-plasma-celestia"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	celestia "github.com/celestiaorg/op-plasma-celestia"
 )
 
 const (
 	ListenAddrFlagName        = "addr"
 	PortFlagName              = "port"
 	GenericCommFlagName       = "generic-commitment"
-	CelestiaServerFlagName        = "celestia.server"
-	CelestiaAuthTokenFlagName     = "celestia.auth-token"
-	CelestiaNamespaceFlagName     = "celestia.namespace"
+	CelestiaServerFlagName    = "celestia.server"
+	CelestiaAuthTokenFlagName = "celestia.auth-token"
+	CelestiaNamespaceFlagName = "celestia.namespace"
+	//s3
+	S3CredentialTypeFlagName  = "s3.credential-type" // #nosec G101
+	S3BucketFlagName          = "s3.bucket"          // #nosec G101
+	S3PathFlagName            = "s3.path"
+	S3EndpointFlagName        = "s3.endpoint"
+	S3AccessKeyIDFlagName     = "s3.access-key-id"     // #nosec G101
+	S3AccessKeySecretFlagName = "s3.access-key-secret" // #nosec G101
+	S3BackupFlagName          = "s3.backup"
+	S3TimeoutFlagName         = "s3.timeout"
 )
 
 const EnvVarPrefix = "OP_PLASMA_DA_SERVER"
@@ -49,7 +60,7 @@ var (
 	CelestiaServerFlag = &cli.StringFlag{
 		Name:    CelestiaServerFlagName,
 		Usage:   "celestia server endpoint",
-        Value:   "http://localhost:26658",
+		Value:   "http://localhost:26658",
 		EnvVars: prefixEnvVars("CELESTIA_SERVER"),
 	}
 	CelestiaAuthTokenFlag = &cli.StringFlag{
@@ -64,8 +75,52 @@ var (
 		Value:   "",
 		EnvVars: prefixEnvVars("CELESTIA_NAMESPACE"),
 	}
+	S3CredentialTypeFlag = &cli.StringFlag{
+		Name:    S3CredentialTypeFlagName,
+		Usage:   "The way to authenticate to S3, options are [iam, static]",
+		EnvVars: prefixEnvVars("S3_CREDENTIAL_TYPE"),
+	}
+	S3BucketFlag = &cli.StringFlag{
+		Name:    S3BucketFlagName,
+		Usage:   "bucket name for S3 storage",
+		EnvVars: prefixEnvVars("S3_BUCKET"),
+	}
+	S3PathFlag = &cli.StringFlag{
+		Name:    S3PathFlagName,
+		Usage:   "path for S3 storage",
+		EnvVars: prefixEnvVars("S3_PATH"),
+	}
+	S3EndpointFlag = &cli.StringFlag{
+		Name:    S3EndpointFlagName,
+		Usage:   "endpoint for S3 storage",
+		Value:   "",
+		EnvVars: prefixEnvVars("S3_ENDPOINT"),
+	}
+	S3AccessKeyIDFlag = &cli.StringFlag{
+		Name:    S3AccessKeyIDFlagName,
+		Usage:   "access key id for S3 storage",
+		Value:   "",
+		EnvVars: prefixEnvVars("S3_ACCESS_KEY_ID"),
+	}
+	S3AccessKeySecretFlag = &cli.StringFlag{
+		Name:    S3AccessKeySecretFlagName,
+		Usage:   "access key secret for S3 storage",
+		Value:   "",
+		EnvVars: prefixEnvVars("S3_ACCESS_KEY_SECRET"),
+	}
+	S3BackupFlag = &cli.BoolFlag{
+		Name:    S3BackupFlagName,
+		Usage:   "Backup to S3 in parallel with Celestia.",
+		Value:   false,
+		EnvVars: prefixEnvVars("S3_BACKUP"),
+	}
+	S3TimeoutFlag = &cli.StringFlag{
+		Name:    S3TimeoutFlagName,
+		Usage:   "S3 timeout",
+		Value:   "60s",
+		EnvVars: prefixEnvVars("S3_TIMEOUT"),
+	}
 )
-
 var requiredFlags = []cli.Flag{
 	ListenAddrFlag,
 	PortFlag,
@@ -76,6 +131,14 @@ var optionalFlags = []cli.Flag{
 	CelestiaServerFlag,
 	CelestiaAuthTokenFlag,
 	CelestiaNamespaceFlag,
+	S3CredentialTypeFlag,
+	S3BucketFlag,
+	S3PathFlag,
+	S3EndpointFlag,
+	S3AccessKeyIDFlag,
+	S3AccessKeySecretFlag,
+	S3BackupFlag,
+	S3TimeoutFlag,
 }
 
 func init() {
@@ -88,17 +151,27 @@ var Flags []cli.Flag
 
 type CLIConfig struct {
 	UseGenericComm    bool
-	CelestiaEndpoint      string
-	CelestiaAuthToken     string
-	CelestiaNamespace     string
+	CelestiaEndpoint  string
+	CelestiaAuthToken string
+	CelestiaNamespace string
+	S3Config          s3.S3Config
 }
 
 func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	return CLIConfig{
 		UseGenericComm:    ctx.Bool(GenericCommFlagName),
-		CelestiaEndpoint:      ctx.String(CelestiaServerFlagName),
-		CelestiaAuthToken:     ctx.String(CelestiaAuthTokenFlagName),
-		CelestiaNamespace:     ctx.String(CelestiaNamespaceFlagName),
+		CelestiaEndpoint:  ctx.String(CelestiaServerFlagName),
+		CelestiaAuthToken: ctx.String(CelestiaAuthTokenFlagName),
+		CelestiaNamespace: ctx.String(CelestiaNamespaceFlagName),
+		S3Config: s3.S3Config{
+			S3CredentialType: toS3CredentialType(ctx.String(S3CredentialTypeFlagName)),
+			Bucket:           ctx.String(S3BucketFlagName),
+			Path:             ctx.String(S3PathFlagName),
+			Endpoint:         ctx.String(S3EndpointFlagName),
+			AccessKeyID:      ctx.String(S3AccessKeyIDFlagName),
+			AccessKeySecret:  ctx.String(S3AccessKeySecretFlagName),
+			Backup:           ctx.Bool(S3BackupFlagName),
+		},
 	}
 }
 
@@ -134,4 +207,13 @@ func CheckRequired(ctx *cli.Context) error {
 		}
 	}
 	return nil
+}
+
+func toS3CredentialType(s string) s3.S3CredentialType {
+	if s == string(s3.S3CredentialStatic) {
+		return s3.S3CredentialStatic
+	} else if s == string(s3.S3CredentialIAM) {
+		return s3.S3CredentialIAM
+	}
+	return s3.S3CredentialUnknown
 }

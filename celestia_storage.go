@@ -23,8 +23,8 @@ type CelestiaConfig struct {
 type CelestiaStore struct {
 	Log        log.Logger
 	GetTimeout time.Duration
-	Namespace []byte
-	Client *client.Client
+	Namespace  []byte
+	Client     *client.Client
 }
 
 // NewCelestiaStore returns a celestia store.
@@ -37,9 +37,9 @@ func NewCelestiaStore(cfg CelestiaConfig) *CelestiaStore {
 	}
 	return &CelestiaStore{
 		Log:        Log,
-		Client:         client,
+		Client:     client,
 		GetTimeout: time.Minute,
-		Namespace: cfg.Namespace,
+		Namespace:  cfg.Namespace,
 	}
 }
 

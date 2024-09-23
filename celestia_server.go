@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	s3 "github.com/celestiaorg/op-plasma-celestia/s3"
 	plasma "github.com/ethereum-optimism/optimism/op-plasma"
 	"github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -21,17 +22,19 @@ type CelestiaServer struct {
 	log        log.Logger
 	endpoint   string
 	store      *CelestiaStore
+	s3Store    *s3.S3Store
 	tls        *rpc.ServerTLSConfig
 	httpServer *http.Server
 	listener   net.Listener
 }
 
-func NewCelestiaServer(host string, port int, store *CelestiaStore, log log.Logger) *CelestiaServer {
+func NewCelestiaServer(host string, port int, store *CelestiaStore, s3Store *s3.S3Store, log log.Logger) *CelestiaServer {
 	endpoint := net.JoinHostPort(host, strconv.Itoa(port))
 	return &CelestiaServer{
 		log:      log,
 		endpoint: endpoint,
 		store:    store,
+		s3Store:  s3Store,
 		httpServer: &http.Server{
 			Addr: endpoint,
 		},
