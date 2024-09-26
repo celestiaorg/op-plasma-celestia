@@ -30,6 +30,8 @@ const (
 	S3AccessKeySecretFlagName = "s3.access-key-secret" // #nosec G101
 	S3BackupFlagName          = "s3.backup"
 	S3TimeoutFlagName         = "s3.timeout"
+	FallbackFlagName          = "routing.fallback"
+	CacheFlagName             = "routing.cache"
 )
 
 const EnvVarPrefix = "OP_PLASMA_DA_SERVER"
@@ -120,6 +122,18 @@ var (
 		Value:   "60s",
 		EnvVars: prefixEnvVars("S3_TIMEOUT"),
 	}
+	FallbackFlag = &cli.BoolFlag{
+		Name:    FallbackFlagName,
+		Usage:   "Enable fallback",
+		Value:   false,
+		EnvVars: prefixEnvVars("FALLBACK"),
+	}
+	CacheFlag = &cli.BoolFlag{
+		Name:    CacheFlagName,
+		Usage:   "Enable cache.",
+		Value:   false,
+		EnvVars: prefixEnvVars("CACHE"),
+	}
 )
 var requiredFlags = []cli.Flag{
 	ListenAddrFlag,
@@ -155,6 +169,8 @@ type CLIConfig struct {
 	CelestiaAuthToken string
 	CelestiaNamespace string
 	S3Config          s3.S3Config
+	Fallback          bool
+	Cache             bool
 }
 
 func ReadCLIConfig(ctx *cli.Context) CLIConfig {
@@ -172,6 +188,8 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 			AccessKeySecret:  ctx.String(S3AccessKeySecretFlagName),
 			Backup:           ctx.Bool(S3BackupFlagName),
 		},
+		Fallback: ctx.Bool(FallbackFlagName),
+		Cache:    ctx.Bool(CacheFlagName),
 	}
 }
 
@@ -198,6 +216,14 @@ func (c CLIConfig) CelestiaConfig() celestia.CelestiaConfig {
 
 func (c CLIConfig) CelestiaEnabled() bool {
 	return !(c.CelestiaEndpoint == "" && c.CelestiaAuthToken == "" && c.CelestiaNamespace == "")
+}
+
+func (c CLIConfig) CacheEnabled() bool {
+	return c.Cache
+}
+
+func (c CLIConfig) FallbackEnabled() bool {
+	return c.Fallback
 }
 
 func CheckRequired(ctx *cli.Context) error {

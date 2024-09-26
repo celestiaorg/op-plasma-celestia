@@ -81,6 +81,10 @@ func (s *S3Store) Put(ctx context.Context, key []byte, value []byte) error {
 	return nil
 }
 
+func (s *S3Store) Backup() bool {
+	return s.cfg.Backup
+}
+
 func creds(cfg S3Config) *credentials.Credentials {
 	if cfg.S3CredentialType == S3CredentialIAM {
 		return credentials.NewIAM("")

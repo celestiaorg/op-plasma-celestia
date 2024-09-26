@@ -7,6 +7,10 @@ import (
 	"time"
 
 	client "github.com/celestiaorg/celestia-openrpc"
+	"github.com/celestiaorg/go-square/blob"
+	"github.com/celestiaorg/go-square/inclusion"
+	"github.com/celestiaorg/go-square/merkle"
+	"github.com/celestiaorg/go-square/namespace"
 	plasma "github.com/ethereum-optimism/optimism/op-plasma"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -65,4 +69,12 @@ func (d *CelestiaStore) Put(ctx context.Context, data []byte) ([]byte, error) {
 		return commitment.Encode(), nil
 	}
 	return nil, err
+}
+
+func (d *CelestiaStore) CreateCommitment(data []byte) ([]byte, error) {
+	ins, err := namespace.From(d.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	return inclusion.CreateCommitment(blob.New(ins, data, 0), merkle.HashFromByteSlices, 64)
 }

@@ -44,7 +44,7 @@ func StartDAServer(cliCtx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		server = celestia.NewCelestiaServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), store, s3Store, l)
+		server = celestia.NewCelestiaServer(cliCtx.String(ListenAddrFlagName), cliCtx.Int(PortFlagName), store, s3Store, cfg.FallbackEnabled(), cfg.CacheEnabled(), l)
 	}
 
 	if err := server.Start(); err != nil {

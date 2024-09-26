@@ -1,6 +1,7 @@
 package celestia
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,12 +10,14 @@ import (
 	"net/http"
 	"path"
 	"strconv"
+	"sync"
 	"time"
 
 	s3 "github.com/celestiaorg/op-plasma-celestia/s3"
 	plasma "github.com/ethereum-optimism/optimism/op-plasma"
 	"github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -26,9 +29,14 @@ type CelestiaServer struct {
 	tls        *rpc.ServerTLSConfig
 	httpServer *http.Server
 	listener   net.Listener
+
+	cache        bool
+	fallback     bool
+	cacheLock    sync.RWMutex
+	fallbackLock sync.RWMutex
 }
 
-func NewCelestiaServer(host string, port int, store *CelestiaStore, s3Store *s3.S3Store, log log.Logger) *CelestiaServer {
+func NewCelestiaServer(host string, port int, store *CelestiaStore, s3Store *s3.S3Store, fallback bool, cache bool, log log.Logger) *CelestiaServer {
 	endpoint := net.JoinHostPort(host, strconv.Itoa(port))
 	return &CelestiaServer{
 		log:      log,
@@ -38,6 +46,8 @@ func NewCelestiaServer(host string, port int, store *CelestiaStore, s3Store *s3.
 		httpServer: &http.Server{
 			Addr: endpoint,
 		},
+		fallback: fallback,
+		cache:    cache,
 	}
 }
 
@@ -97,18 +107,41 @@ func (d *CelestiaServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 1 read blob from cache if enabled
+	if d.cache {
+		d.log.Debug("Retrieving data from cached backends")
+		input, err := d.multiSourceRead(r.Context(), comm, false)
+		if err == nil {
+			if _, err := w.Write(input); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+		d.log.Warn("Failed to read from cache", "err", err)
+	}
+	// 2 read blob from Celestia
 	input, err := d.store.Get(r.Context(), comm)
 	if err != nil && errors.Is(err, plasma.ErrNotFound) {
 		w.WriteHeader(http.StatusNotFound)
 		return
+	} else {
+		if _, err := w.Write(input); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
-	if err != nil {
+
+	//3 fallback
+	if d.fallback {
+		input, err = d.multiSourceRead(r.Context(), comm, true)
+		if err != nil {
+			d.log.Error("Failed to read from fallback", "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	} else {
+		d.log.Error("Fallback disabled")
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if _, err := w.Write(input); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
 }
 
@@ -149,4 +182,30 @@ func (b *CelestiaServer) Stop() error {
 	defer cancel()
 	_ = b.httpServer.Shutdown(ctx)
 	return nil
+}
+
+// multiSourceRead ... reads from a set of backends and returns the first successfully read blob
+func (b *CelestiaServer) multiSourceRead(ctx context.Context, commitment []byte, fallback bool) ([]byte, error) {
+
+	if fallback {
+		b.fallbackLock.RLock()
+		defer b.fallbackLock.RUnlock()
+	} else {
+		b.cacheLock.RLock()
+		defer b.cacheLock.RUnlock()
+	}
+
+	key := crypto.Keccak256(commitment)
+	data, err := b.s3Store.Get(ctx, key)
+	if err != nil {
+		b.log.Warn("Failed to read from redundant target S3", "err", err)
+		return nil, errors.New("no data found in any redundant backend")
+	}
+	// verify cert:data using EigenDA verification checks
+	commit, err := b.store.CreateCommitment(data)
+	if err != nil || !bytes.Equal(commit, data[9:]) {
+		return nil, fmt.Errorf("celestia: invalid commitment: calldata=%x commit=%x err=%w", data, commit, err)
+	}
+
+	return data, nil
 }
