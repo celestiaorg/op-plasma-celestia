@@ -108,23 +108,26 @@ func (d *CelestiaServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 1 read blob from cache if enabled
+	responseSent := false
 	if d.cache {
 		d.log.Debug("Retrieving data from cached backends")
 		input, err := d.multiSourceRead(r.Context(), comm, false)
 		if err == nil {
+			responseSent = true
 			if _, err := w.Write(input); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		}
-		d.log.Warn("Failed to read from cache", "err", err)
 	}
 	// 2 read blob from Celestia
 	input, err := d.store.Get(r.Context(), comm)
 	if err != nil && errors.Is(err, plasma.ErrNotFound) {
+		responseSent = true
 		w.WriteHeader(http.StatusNotFound)
 		return
 	} else {
+		responseSent = true
 		if _, err := w.Write(input); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -132,15 +135,14 @@ func (d *CelestiaServer) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//3 fallback
-	if d.fallback {
+	if d.fallback && err != nil {
 		input, err = d.multiSourceRead(r.Context(), comm, true)
 		if err != nil {
 			d.log.Error("Failed to read from fallback", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	} else {
-		d.log.Error("Fallback disabled")
+	} else if !responseSent {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
@@ -160,14 +162,22 @@ func (d *CelestiaServer) HandlePut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comm, err := d.store.Put(r.Context(), input)
+	commitment, err := d.store.Put(r.Context(), input)
 	if err != nil {
-		key := hexutil.Encode(comm)
+		key := hexutil.Encode(commitment)
 		d.log.Info("Failed to store commitment to the DA server", "err", err, "key", key)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if _, err := w.Write(comm); err != nil {
+
+	if d.cache || d.fallback {
+		err = d.handleRedundantWrites(r.Context(), commitment, input)
+		if err != nil {
+			log.Error("Failed to write to redundant backends", "err", err)
+		}
+	}
+
+	if _, err := w.Write(commitment); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -196,16 +206,43 @@ func (b *CelestiaServer) multiSourceRead(ctx context.Context, commitment []byte,
 	}
 
 	key := crypto.Keccak256(commitment)
+	ctx, cancel := context.WithTimeout(ctx, b.s3Store.Timeout())
 	data, err := b.s3Store.Get(ctx, key)
+	defer cancel()
 	if err != nil {
-		b.log.Warn("Failed to read from redundant target S3", "err", err)
+		b.log.Warn("Failed to read from redundant target S3", "err", err, "key", key)
 		return nil, errors.New("no data found in any redundant backend")
 	}
-	// verify cert:data using EigenDA verification checks
+
 	commit, err := b.store.CreateCommitment(data)
-	if err != nil || !bytes.Equal(commit, data[9:]) {
-		return nil, fmt.Errorf("celestia: invalid commitment: calldata=%x commit=%x err=%w", data, commit, err)
+	if err != nil || !bytes.Equal(commit, commitment[10:]) {
+		return nil, fmt.Errorf("celestia: invalid commitment: commit=%x commitment=%x err=%w", commit, commitment[10:], err)
 	}
 
 	return data, nil
+}
+
+// handleRedundantWrites ... writes to both sets of backends (i.e, fallback, cache)
+// and returns an error if NONE of them succeed
+// NOTE: multi-target set writes are done at once to avoid re-invocation of the same write function at the same
+// caller step for different target sets vs. reading which is done conditionally to segment between a cached read type
+// vs a fallback read type
+func (b *CelestiaServer) handleRedundantWrites(ctx context.Context, commitment []byte, value []byte) error {
+	b.cacheLock.RLock()
+	b.fallbackLock.RLock()
+
+	defer func() {
+		b.cacheLock.RUnlock()
+		b.fallbackLock.RUnlock()
+	}()
+
+	ctx, cancel := context.WithTimeout(ctx, b.s3Store.Timeout())
+	key := crypto.Keccak256(commitment)
+	err := b.s3Store.Put(ctx, key, value)
+	defer cancel()
+	if err != nil {
+		b.log.Warn("Failed to write to redundant s3 target", "err", err, "timeout", b.s3Store.Timeout(), "key", key)
+	}
+
+	return nil
 }

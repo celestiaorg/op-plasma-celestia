@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -28,7 +29,6 @@ const (
 	S3EndpointFlagName        = "s3.endpoint"
 	S3AccessKeyIDFlagName     = "s3.access-key-id"     // #nosec G101
 	S3AccessKeySecretFlagName = "s3.access-key-secret" // #nosec G101
-	S3BackupFlagName          = "s3.backup"
 	S3TimeoutFlagName         = "s3.timeout"
 	FallbackFlagName          = "routing.fallback"
 	CacheFlagName             = "routing.cache"
@@ -110,16 +110,10 @@ var (
 		Value:   "",
 		EnvVars: prefixEnvVars("S3_ACCESS_KEY_SECRET"),
 	}
-	S3BackupFlag = &cli.BoolFlag{
-		Name:    S3BackupFlagName,
-		Usage:   "Backup to S3 in parallel with Celestia.",
-		Value:   false,
-		EnvVars: prefixEnvVars("S3_BACKUP"),
-	}
-	S3TimeoutFlag = &cli.StringFlag{
+	S3TimeoutFlag = &cli.DurationFlag{
 		Name:    S3TimeoutFlagName,
 		Usage:   "S3 timeout",
-		Value:   "60s",
+		Value:   5 * time.Second,
 		EnvVars: prefixEnvVars("S3_TIMEOUT"),
 	}
 	FallbackFlag = &cli.BoolFlag{
@@ -151,8 +145,9 @@ var optionalFlags = []cli.Flag{
 	S3EndpointFlag,
 	S3AccessKeyIDFlag,
 	S3AccessKeySecretFlag,
-	S3BackupFlag,
 	S3TimeoutFlag,
+	FallbackFlag,
+	CacheFlag,
 }
 
 func init() {
@@ -186,7 +181,7 @@ func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 			Endpoint:         ctx.String(S3EndpointFlagName),
 			AccessKeyID:      ctx.String(S3AccessKeyIDFlagName),
 			AccessKeySecret:  ctx.String(S3AccessKeySecretFlagName),
-			Backup:           ctx.Bool(S3BackupFlagName),
+			Timeout:          ctx.Duration(S3TimeoutFlagName),
 		},
 		Fallback: ctx.Bool(FallbackFlagName),
 		Cache:    ctx.Bool(CacheFlagName),

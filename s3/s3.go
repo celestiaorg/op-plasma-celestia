@@ -29,7 +29,6 @@ type S3Config struct {
 	AccessKeyID      string
 	AccessKeySecret  string
 	Profiling        bool
-	Backup           bool
 	Timeout          time.Duration
 }
 
@@ -81,8 +80,8 @@ func (s *S3Store) Put(ctx context.Context, key []byte, value []byte) error {
 	return nil
 }
 
-func (s *S3Store) Backup() bool {
-	return s.cfg.Backup
+func (s *S3Store) Timeout() time.Duration {
+	return s.cfg.Timeout
 }
 
 func creds(cfg S3Config) *credentials.Credentials {
