@@ -23,8 +23,8 @@ type CelestiaConfig struct {
 type CelestiaStore struct {
 	Log        log.Logger
 	GetTimeout time.Duration
-	Namespace []byte
-	Client *client.Client
+	Namespace  []byte
+	Client     *client.Client
 }
 
 // NewCelestiaStore returns a celestia store.
@@ -37,15 +37,15 @@ func NewCelestiaStore(cfg CelestiaConfig) *CelestiaStore {
 	}
 	return &CelestiaStore{
 		Log:        Log,
-		Client:         client,
+		Client:     client,
 		GetTimeout: time.Minute,
-		Namespace: cfg.Namespace,
+		Namespace:  cfg.Namespace,
 	}
 }
 
 func (d *CelestiaStore) Get(ctx context.Context, key []byte) ([]byte, error) {
 	log.Info("celestia: blob request", "id", hex.EncodeToString(key))
-	ctx, cancel := context.WithTimeout(context.Background(), d.GetTimeout)
+	ctx, cancel := context.WithTimeout(ctx, d.GetTimeout)
 	blobs, err := d.Client.DA.Get(ctx, [][]byte{key[2:]}, d.Namespace)
 	cancel()
 	if err != nil || len(blobs) == 0 {
