@@ -43,6 +43,7 @@ func (d *CelestiaServer) Start() error {
 
 	mux.HandleFunc("/get/", d.HandleGet)
 	mux.HandleFunc("/put/", d.HandlePut)
+	mux.HandleFunc("/put", d.HandlePut)
 
 	d.httpServer.Handler = mux
 
