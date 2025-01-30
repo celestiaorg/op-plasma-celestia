@@ -20,6 +20,15 @@ celestia da-server accepts the following flags for celestia storage using
     --celestia.server value             (default: "http://localhost:26658") ($OP_PLASMA_DA_SERVER_CELESTIA_SERVER)
           celestia server endpoint
 
+    --s3.credential-type                                            $OP_PLASMA_S3_CREDENTIAL_TYPE	Static or iam.
+    --s3.access-key-id                                            $OP_PLASMA_S3_ACCESS_KEY_ID	Access key id for S3 storage.
+    --s3.access-key-id                                            $OP_PLASMA_S3_ACCESS_KEY_ID	Access key id for S3 storage.
+    --s3.access-key-secret                                            $OP_PLASMA_S3_ACCESS_KEY_SECRET	Access key secret for S3 storage.
+    --s3.bucket                                            $OP_PLASMA_S3_BUCKET	Bucket name for S3 storage.
+    --s3.path                                            $OP_PLASMA_S3_PATH
+    --routing.fallback          (default: false)	$OP_PLASMA_FALLBACK_TARGET	Fall back backend target. Supports S3.
+    --routing.cache             (default: false)	$OP_PLASMA_CACHE
+
 ````
 
 The celestia server endpoint should be set to the celestia-node rpc server,
