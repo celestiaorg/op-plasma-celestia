@@ -7,18 +7,17 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	celestia "github.com/celestiaorg/op-plasma-celestia"
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	celestia "github.com/celestiaorg/op-plasma-celestia"
 )
 
 const (
 	ListenAddrFlagName        = "addr"
 	PortFlagName              = "port"
-	GenericCommFlagName       = "generic-commitment"
-	CelestiaServerFlagName        = "celestia.server"
-	CelestiaAuthTokenFlagName     = "celestia.auth-token"
-	CelestiaNamespaceFlagName     = "celestia.namespace"
+	CelestiaServerFlagName    = "celestia.server"
+	CelestiaAuthTokenFlagName = "celestia.auth-token"
+	CelestiaNamespaceFlagName = "celestia.namespace"
 )
 
 const EnvVarPrefix = "OP_PLASMA_DA_SERVER"
@@ -40,16 +39,10 @@ var (
 		Value:   3100,
 		EnvVars: prefixEnvVars("PORT"),
 	}
-	GenericCommFlag = &cli.BoolFlag{
-		Name:    GenericCommFlagName,
-		Usage:   "enable generic commitments for testing. Not for production use.",
-		EnvVars: prefixEnvVars("GENERIC_COMMITMENT"),
-		Value:   true,
-	}
 	CelestiaServerFlag = &cli.StringFlag{
 		Name:    CelestiaServerFlagName,
 		Usage:   "celestia server endpoint",
-        Value:   "http://localhost:26658",
+		Value:   "http://localhost:26658",
 		EnvVars: prefixEnvVars("CELESTIA_SERVER"),
 	}
 	CelestiaAuthTokenFlag = &cli.StringFlag{
@@ -72,7 +65,6 @@ var requiredFlags = []cli.Flag{
 }
 
 var optionalFlags = []cli.Flag{
-	GenericCommFlag,
 	CelestiaServerFlag,
 	CelestiaAuthTokenFlag,
 	CelestiaNamespaceFlag,
@@ -88,17 +80,16 @@ var Flags []cli.Flag
 
 type CLIConfig struct {
 	UseGenericComm    bool
-	CelestiaEndpoint      string
-	CelestiaAuthToken     string
-	CelestiaNamespace     string
+	CelestiaEndpoint  string
+	CelestiaAuthToken string
+	CelestiaNamespace string
 }
 
 func ReadCLIConfig(ctx *cli.Context) CLIConfig {
 	return CLIConfig{
-		UseGenericComm:    ctx.Bool(GenericCommFlagName),
-		CelestiaEndpoint:      ctx.String(CelestiaServerFlagName),
-		CelestiaAuthToken:     ctx.String(CelestiaAuthTokenFlagName),
-		CelestiaNamespace:     ctx.String(CelestiaNamespaceFlagName),
+		CelestiaEndpoint:  ctx.String(CelestiaServerFlagName),
+		CelestiaAuthToken: ctx.String(CelestiaAuthTokenFlagName),
+		CelestiaNamespace: ctx.String(CelestiaNamespaceFlagName),
 	}
 }
 

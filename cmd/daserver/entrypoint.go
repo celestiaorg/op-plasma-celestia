@@ -5,9 +5,9 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	celestia "github.com/celestiaorg/op-plasma-celestia"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/opio"
-	celestia "github.com/celestiaorg/op-plasma-celestia"
 )
 
 type Server interface {
