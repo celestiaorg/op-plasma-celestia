@@ -10,4 +10,5 @@ FROM alpine:3.18
 
 COPY --from=builder /op-plasma-celestia/bin/da-server /usr/local/bin/da-server
 
-CMD ["da-server"]
+EXPOSE 3100
+ENTRYPOINT ["/usr/local/bin/da-server"]
